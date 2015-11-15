@@ -1,5 +1,8 @@
 package com.example.eazhilarasi.voicealarm;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Intent;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.support.v7.app.AppCompatActivity;
@@ -8,18 +11,39 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TimePicker;
+import android.widget.Toast;
 
 import java.io.IOException;
+import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = "MainActivity";
     MediaRecorder recorder;
     MediaPlayer mediaPlayer;
+    TimePicker timepicker;
+    long milliseconds;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        timepicker = (TimePicker)findViewById(R.id.timePicker);
+        timepicker.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
+
+            public void onTimeChanged(TimePicker view, int hourOfDay, int minute) {
+
+                milliseconds = hourOfDay * 3600000;
+                milliseconds = minute * 60000;
+                Calendar cal = Calendar.getInstance();
+                cal.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                cal.set(Calendar.MINUTE, minute);
+                int offset = cal.getTimeZone().getOffset(cal.getTimeInMillis());
+                milliseconds = cal.getTimeInMillis() + offset;
+
+                Toast.makeText(MainActivity.this, String.valueOf(milliseconds) + " : " + String.valueOf(System.currentTimeMillis()), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -70,14 +94,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void play(View view)
     {
-        mediaPlayer = new MediaPlayer();
-        try {
-            mediaPlayer.setDataSource(getFilesDir()+"/audio.m4a");
-            mediaPlayer.prepare();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
-        }
+        Intent AlarmIntent = new Intent(MainActivity.this, AlarmReceiver.class);
 
-        mediaPlayer.start();
+
+        AlarmManager AlmMgr = (AlarmManager)getSystemService(ALARM_SERVICE);
+        PendingIntent Sender = PendingIntent.getBroadcast(this, 0, AlarmIntent, 0);
+        AlmMgr.set(AlarmManager.RTC_WAKEUP, milliseconds, Sender);
+
     }
 }
